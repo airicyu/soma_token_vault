@@ -34,21 +34,8 @@ What it could do:
 
 ----
 
-## Concept Explain
 
-### Owner
-
-The owner of the program. Some core critical configs can only be changed via calling some instructions by the owner.
-
-### Relayer
-
-The user that can operate on some mint/burn like instructions.
-
-### Mint account
-
-The mint account of the token in the protocol.
-
-### Staking
+## Staking
 
 The program allow users to stake their token into the pool to earn. The earn rewards are come from the reward vault.
 
@@ -64,9 +51,7 @@ This is a vault that storing reward tokens for the staking.
 
 ----
 
-## Program Explain
-
-Instructions
+## Program Instructions Explain
 
 ### initalizeProgram
 
