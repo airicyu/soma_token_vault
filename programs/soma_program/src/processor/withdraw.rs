@@ -18,7 +18,7 @@ use anchor_spl::token_interface::{ Mint, TokenAccount };
 
 /// Withdraw token from unstaked balance
 #[derive(Accounts)]
-pub struct Withdraw<'info> {
+pub struct WithdrawContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
@@ -69,7 +69,7 @@ pub struct Withdraw<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn withdraw(ctx: Context<Withdraw>) -> Result<()> {
+pub fn withdraw(ctx: Context<WithdrawContext>) -> Result<()> {
     let clock = Clock::get().unwrap();
 
     let user_stake_info = &mut ctx.accounts.user_stake_info;

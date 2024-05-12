@@ -22,12 +22,13 @@ use anchor_spl::token_interface::{ Mint, TokenAccount };
 /// Must be run once after program deployed. And should run after "InitializeProgram".
 #[derive(Accounts)]
 #[instruction(data: Box<InitializeTokenInstructionData>)]
-pub struct InitializeToken<'info> {
+pub struct InitializeTokenContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    #[account(seeds = [SEED_OWNER_CONFIG.as_ref()], bump)]
-    pub owner_config: Box<Account<'info, OwnerConfig>>,
+    #[account(mut, seeds = [SEED_OWNER_CONFIG.as_ref()], bump,
+    constraint = owner_config.is_owner(&payer.key()) @ ProtocolProgramError::RequireOwner)]
+    pub owner_config: Account<'info, OwnerConfig>,
 
     #[account(
         init,
@@ -88,15 +89,9 @@ pub struct InitializeTokenInstructionData {
 }
 
 pub fn initialize_token(
-    ctx: Context<InitializeToken>,
+    ctx: Context<InitializeTokenContext>,
     data: Box<InitializeTokenInstructionData>
 ) -> Result<()> {
-    // msg!("data {:?}", data);
-    require!(
-        &ctx.accounts.owner_config.is_owner(&ctx.accounts.payer.key()),
-        ProtocolProgramError::RequireOwner
-    );
-
     let token_config = &mut ctx.accounts.token_config;
     token_config.mint = ctx.accounts.mint.key();
 

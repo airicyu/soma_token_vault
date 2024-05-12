@@ -15,11 +15,15 @@ use anchor_spl::token_interface::{ Mint, TokenAccount };
 
 /// Burn token from vault
 #[derive(Accounts)]
-pub struct BurnFromVault<'info> {
+pub struct BurnFromVaultContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    #[account(seeds = [SEED_RELAYER_CONFIG.as_ref()], bump)]
+    #[account(
+        seeds = [SEED_RELAYER_CONFIG.as_ref()],
+        bump,
+        constraint = relayer_config.is_relayer(&payer.key()) @ ProtocolProgramError::RequireRelayer
+    )]
     pub relayer_config: Box<Account<'info, RelayerConfig>>,
 
     #[account(seeds = [SEED_TOKEN_CONFIG.as_ref()], bump)]
@@ -47,12 +51,7 @@ pub struct BurnFromVault<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn burn_from_vault(ctx: Context<BurnFromVault>, amount: u64) -> Result<()> {
-    require!(
-        &ctx.accounts.relayer_config.is_relayer(&ctx.accounts.payer.key()),
-        ProtocolProgramError::RequireRelayer
-    );
-
+pub fn burn_from_vault(ctx: Context<BurnFromVaultContext>, amount: u64) -> Result<()> {
     // invoke CPI: Burn vault tokens
     let bump = ctx.bumps.vault;
     let seeds = &[SEED_VAULT.as_ref(), &[bump]];

@@ -14,7 +14,7 @@ use anchor_spl::token_interface::{ Mint, TokenAccount };
 
 /// Stake token to pool
 #[derive(Accounts)]
-pub struct Stake<'info> {
+pub struct StakeContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
@@ -56,36 +56,8 @@ pub struct Stake<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+pub fn stake(ctx: Context<StakeContext>, amount: u64) -> Result<()> {
     let clock = Clock::get().unwrap();
-
-    // // burn from user token account
-    // {
-    //     let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), Burn {
-    //         mint: ctx.accounts.mint.to_account_info(),
-    //         from: ctx.accounts.user_token_account.to_account_info(),
-    //         authority: ctx.accounts.payer.to_account_info(),
-    //     });
-    //     burn(cpi_ctx, amount).unwrap();
-    // }
-
-    // // mint to stake pool token account
-    // {
-    //     let bump = ctx.bumps.minter;
-    //     let seeds = &[SEED_MINTER.as_ref(), &[bump]];
-    //     let signer: &[&[&[u8]]] = &[&seeds[..]];
-
-    //     let cpi_ctx = CpiContext::new_with_signer(
-    //         ctx.accounts.token_program.to_account_info(),
-    //         MintTo {
-    //             mint: ctx.accounts.mint.to_account_info(),
-    //             to: ctx.accounts.stake_pool_token_account.to_account_info(),
-    //             authority: ctx.accounts.minter.to_account_info(),
-    //         },
-    //         signer
-    //     );
-    //     mint_to(cpi_ctx, amount).unwrap();
-    // }
 
     // transfer user token to stake pool
     {

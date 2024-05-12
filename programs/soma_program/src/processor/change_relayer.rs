@@ -7,23 +7,19 @@ use crate::state::relayer_config::RelayerConfig;
 
 /// Change relayer
 #[derive(Accounts)]
-pub struct ChangeRelayer<'info> {
+pub struct ChangeRelayerContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    #[account(seeds = [SEED_OWNER_CONFIG.as_ref()], bump)]
+    #[account(mut, seeds = [SEED_OWNER_CONFIG.as_ref()], bump,
+    constraint = owner_config.is_owner(&payer.key()) @ ProtocolProgramError::RequireOwner)]
     pub owner_config: Account<'info, OwnerConfig>,
 
-    #[account(seeds = [SEED_RELAYER_CONFIG.as_ref()], bump)]
+    #[account(mut, seeds = [SEED_RELAYER_CONFIG.as_ref()], bump)]
     pub relayer_config: Account<'info, RelayerConfig>,
 }
 
-pub fn change_relayer(ctx: Context<ChangeRelayer>, relayer: Pubkey) -> Result<()> {
-    require!(
-        &ctx.accounts.owner_config.is_owner(&ctx.accounts.payer.key()),
-        ProtocolProgramError::RequireOwner
-    );
-
+pub fn change_relayer(ctx: Context<ChangeRelayerContext>, relayer: Pubkey) -> Result<()> {
     let relayer_config = &mut ctx.accounts.relayer_config;
     relayer_config.relayer = relayer;
 

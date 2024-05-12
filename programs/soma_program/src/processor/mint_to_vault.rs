@@ -15,11 +15,15 @@ use anchor_spl::token_interface::{ Mint, TokenAccount };
 
 /// Mint token to vault
 #[derive(Accounts)]
-pub struct MintToVault<'info> {
+pub struct MintToVaultContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    #[account(seeds = [SEED_RELAYER_CONFIG.as_ref()], bump)]
+    #[account(
+        seeds = [SEED_RELAYER_CONFIG.as_ref()],
+        bump,
+        constraint = relayer_config.is_relayer(&payer.key()) @ ProtocolProgramError::RequireRelayer
+    )]
     pub relayer_config: Box<Account<'info, RelayerConfig>>,
 
     #[account(seeds = [SEED_TOKEN_CONFIG.as_ref()], bump)]
@@ -47,13 +51,7 @@ pub struct MintToVault<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn mint_to_vault(ctx: Context<MintToVault>, amount: u64) -> Result<()> {
-    msg!("relayer {} payer {}", ctx.accounts.relayer_config.relayer, ctx.accounts.payer.key());
-    require!(
-        &ctx.accounts.relayer_config.is_relayer(&ctx.accounts.payer.key()),
-        ProtocolProgramError::RequireRelayer
-    );
-
+pub fn mint_to_vault(ctx: Context<MintToVaultContext>, amount: u64) -> Result<()> {
     let bump = ctx.bumps.minter;
     let seeds = &[SEED_MINTER.as_ref(), &[bump]];
     let signer: &[&[&[u8]]] = &[&seeds[..]];

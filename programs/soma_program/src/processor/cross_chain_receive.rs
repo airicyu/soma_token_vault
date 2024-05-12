@@ -2,13 +2,15 @@ use crate::constant::{ SEED_MINTER, SEED_RELAYER_CONFIG, SEED_TOKEN_CONFIG };
 use crate::error::ProtocolProgramError;
 use crate::state::relayer_config::*;
 use crate::state::token_config::TokenConfig;
+use crate::events::CrossChainReceivedEvent;
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::{ mint_to, MintTo, Token2022 };
 use anchor_spl::token_interface::{ Mint, TokenAccount };
 
-/// Mint token to user ata
+/// Cross Chain Receive
 #[derive(Accounts)]
-pub struct MintToUserAtaContext<'info> {
+#[instruction(data: Box<CrossChainReceiveInstructionData>)]
+pub struct CrossChainReceiveContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
@@ -29,7 +31,7 @@ pub struct MintToUserAtaContext<'info> {
     pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     /// CHECK:
-    #[account()]
+    #[account(address = data.user)]
     pub user: AccountInfo<'info>,
 
     #[account(mut, 
@@ -44,7 +46,19 @@ pub struct MintToUserAtaContext<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn mint_to_user_ata(ctx: Context<MintToUserAtaContext>, amount: u64) -> Result<()> {
+#[account]
+pub struct CrossChainReceiveInstructionData {
+    pub user: Pubkey,
+    pub from_chain_id: u32,
+    pub to_chain_id: u32,
+    pub amount: u64,
+    pub ref_id: String,
+}
+
+pub fn cross_chain_receive(
+    ctx: Context<CrossChainReceiveContext>,
+    data: CrossChainReceiveInstructionData
+) -> Result<()> {
     let bump = ctx.bumps.minter;
     let seeds = &[SEED_MINTER.as_ref(), &[bump]];
     let signer: &[&[&[u8]]] = &[&seeds[..]];
@@ -58,14 +72,22 @@ pub fn mint_to_user_ata(ctx: Context<MintToUserAtaContext>, amount: u64) -> Resu
         },
         signer
     );
-    mint_to(cpi_ctx, amount).unwrap();
+    mint_to(cpi_ctx, data.amount).unwrap();
 
     msg!(
-        "Mint {} token to user {} ata {}",
-        amount,
-        ctx.accounts.user.key(),
+        "Cross chain received Mint {} token to user {} ata {}",
+        data.amount,
+        data.user,
         ctx.accounts.user_token_account.key()
     );
+
+    emit!(CrossChainReceivedEvent {
+        user: data.user.key(),
+        from_chain_id: data.from_chain_id,
+        to_chain_id: data.to_chain_id,
+        amount: data.amount,
+        ref_id: data.ref_id,
+    });
 
     Ok(())
 }

@@ -197,6 +197,94 @@ describe("soma_protocol", () => {
     console.log("Your transaction signature", tx);
   });
 
+  it("change_owner", async () => {
+    const [ownerConfigPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("owner_config")],
+      program.programId
+    );
+
+    const tx = await program.methods
+      .changeOwner(testUser.publicKey)
+      .accounts({
+        payer: payer.publicKey,
+        ownerConfig: ownerConfigPDA,
+      })
+      .rpc({
+        skipPreflight: true,
+        commitment: "confirmed",
+      });
+
+    await program.account.ownerConfig.fetch(ownerConfigPDA).then((data) => {
+      console.log("after change owner, owner: ", data.owner.toString());
+      assert.equal(data.owner.toString(), testUser.publicKey.toString());
+    });
+
+    const tx2 = await program.methods
+      .changeOwner(payer.publicKey)
+      .accounts({
+        payer: testUser.publicKey,
+        ownerConfig: ownerConfigPDA,
+      })
+      .signers([testUser])
+      .rpc({
+        skipPreflight: true,
+        commitment: "confirmed",
+      });
+
+    await program.account.ownerConfig.fetch(ownerConfigPDA).then((data) => {
+      console.log("after change owner again, relayer: ", data.owner.toString());
+      assert.equal(data.owner.toString(), payer.publicKey.toString());
+    });
+  });
+
+  it("change_relayer", async () => {
+    const [ownerConfigPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("owner_config")],
+      program.programId
+    );
+    const [relayerConfigPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("relayer_config")],
+      program.programId
+    );
+
+    const tx = await program.methods
+      .changeRelayer(testUser.publicKey)
+      .accounts({
+        payer: payer.publicKey,
+        ownerConfig: ownerConfigPDA,
+        relayerConfig: relayerConfigPDA,
+      })
+      .rpc({
+        skipPreflight: true,
+        commitment: "confirmed",
+      });
+
+    await program.account.relayerConfig.fetch(relayerConfigPDA).then((data) => {
+      console.log("after change relayer, relayer: ", data.relayer.toString());
+      assert.equal(data.relayer.toString(), testUser.publicKey.toString());
+    });
+
+    const tx2 = await program.methods
+      .changeRelayer(payer.publicKey)
+      .accounts({
+        payer: payer.publicKey,
+        ownerConfig: ownerConfigPDA,
+        relayerConfig: relayerConfigPDA,
+      })
+      .rpc({
+        skipPreflight: true,
+        commitment: "confirmed",
+      });
+
+    await program.account.relayerConfig.fetch(relayerConfigPDA).then((data) => {
+      console.log(
+        "after change relayer again, relayer: ",
+        data.relayer.toString()
+      );
+      assert.equal(data.relayer.toString(), payer.publicKey.toString());
+    });
+  });
+
   it("change stake rate", async () => {
     const [ownerConfigPDA] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode("owner_config")],
@@ -329,7 +417,6 @@ describe("soma_protocol", () => {
         user: testUser.publicKey,
         userTokenAccount: userAta.address,
         tokenProgram: TOKEN_22_PROGRAM,
-        // associatedTokenProgram: ASSOCIATED_PROGRAM_ID,
       })
       .rpc({
         skipPreflight: true,
@@ -693,5 +780,153 @@ describe("soma_protocol", () => {
 
     await checkTokenBalance("vault", vaultTokenAccountPDA);
     // await checkTokenBalance("vault", vaultTokenAccountPDA, "5000000");
+  });
+
+  it("cross_chain_receive", async () => {
+    const [relayerConfigPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("relayer_config")],
+      program.programId
+    );
+
+    const [tokenConfigPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("token_config")],
+      program.programId
+    );
+
+    const [minterPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("minter")],
+      program.programId
+    );
+
+    const [mintPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("mint_token:soma")],
+      program.programId
+    );
+
+    const userAta = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      payer,
+      mintPDA,
+      testUser.publicKey,
+      false,
+      null,
+      null,
+      TOKEN_22_PROGRAM,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    console.log("testUser", testUser.publicKey.toString());
+    console.log("userAta", userAta.address.toString());
+
+    let subscriptionId = null;
+    const listenEventTimer = setTimeout(() => {
+      program.removeEventListener(subscriptionId);
+      throw new Error("Listen CrossChainReceivedEvent timeout");
+    }, 5000);
+
+    subscriptionId = program.addEventListener(
+      "CrossChainReceivedEvent",
+      (event, slot, signature) => {
+        console.log("CrossChainReceived", event, slot, signature);
+        program.removeEventListener(subscriptionId);
+        clearTimeout(listenEventTimer);
+      }
+    );
+
+    const tx = await program.methods
+      .crossChainReceive({
+        user: testUser.publicKey,
+        fromChainId: 1,
+        toChainId: 2,
+        amount: new BN(100000000),
+        refId: "1234",
+      })
+      .accounts({
+        payer: payer.publicKey,
+        relayerConfig: relayerConfigPDA,
+        tokenConfig: tokenConfigPDA,
+        minter: minterPDA,
+        mint: mintPDA,
+        user: testUser.publicKey,
+        userTokenAccount: userAta.address,
+        tokenProgram: TOKEN_22_PROGRAM,
+      })
+      .rpc({
+        skipPreflight: true,
+        commitment: "confirmed",
+      });
+
+    await checkTokenBalance("user", userAta.address, "150000000");
+  });
+
+  it("cross_chain_transfer", async () => {
+    const [relayerConfigPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("relayer_config")],
+      program.programId
+    );
+
+    const [tokenConfigPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("token_config")],
+      program.programId
+    );
+
+    const [mintPDA] = PublicKey.findProgramAddressSync(
+      [anchor.utils.bytes.utf8.encode("mint_token:soma")],
+      program.programId
+    );
+
+    const userAta = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      payer,
+      mintPDA,
+      testUser.publicKey,
+      false,
+      null,
+      null,
+      TOKEN_22_PROGRAM,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    console.log("testUser", testUser.publicKey.toString());
+    console.log("userAta", userAta.address.toString());
+
+    let subscriptionId = null;
+    const listenEventTimer = setTimeout(() => {
+      program.removeEventListener(subscriptionId);
+      throw new Error("Listen CrossChainTransferEvent timeout");
+    }, 5000);
+
+    subscriptionId = program.addEventListener(
+      "CrossChainTransferEvent",
+      (event, slot, signature) => {
+        console.log("CrossChainTransfer", event, slot, signature);
+        program.removeEventListener(subscriptionId);
+        clearTimeout(listenEventTimer);
+      }
+    );
+
+    const tx = await program.methods
+      .crossChainTransfer({
+        user: testUser.publicKey,
+        fromChainId: 1,
+        toChainId: 2,
+        amount: new BN(100000000),
+      })
+      .accounts({
+        payer: payer.publicKey,
+        relayerConfig: relayerConfigPDA,
+        tokenConfig: tokenConfigPDA,
+        mint: mintPDA,
+        user: testUser.publicKey,
+        userTokenAccount: userAta.address,
+        tokenProgram: TOKEN_22_PROGRAM,
+      })
+      .signers([payer, testUser])
+      .rpc({
+        skipPreflight: true,
+        commitment: "confirmed",
+      });
+
+    await checkTokenBalance("user", userAta.address, "50000000");
   });
 });

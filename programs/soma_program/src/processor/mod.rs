@@ -9,6 +9,8 @@ pub mod mint_to_user_ata;
 pub mod stake;
 pub mod unstake;
 pub mod withdraw;
+pub mod cross_chain_receive;
+pub mod cross_chain_transfer;
 
 pub use initialize_program::*;
 pub use initialize_token::*;
@@ -21,3 +23,5 @@ pub use mint_to_user_ata::*;
 pub use stake::*;
 pub use unstake::*;
 pub use withdraw::*;
+pub use cross_chain_receive::*;
+pub use cross_chain_transfer::*;

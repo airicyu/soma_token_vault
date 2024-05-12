@@ -15,7 +15,7 @@ use anchor_lang::prelude::*;
 /// Must be run once after program deployed.
 #[derive(Accounts)]
 #[instruction(data: Box<InitializeProgramInstructionData>)]
-pub struct InitializeProgram<'info> {
+pub struct InitializeProgramContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
@@ -69,7 +69,7 @@ pub struct InitializeProgramInstructionData {
 }
 
 pub fn initialize_program(
-    ctx: Context<InitializeProgram>,
+    ctx: Context<InitializeProgramContext>,
     data: Box<InitializeProgramInstructionData>
 ) -> Result<()> {
     // msg!("data {:?}", data);

@@ -6,7 +6,7 @@ use anchor_lang::prelude::*;
 
 /// Unstake token
 #[derive(Accounts)]
-pub struct Unstake<'info> {
+pub struct UnstakeContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
@@ -19,7 +19,7 @@ pub struct Unstake<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn unstake(ctx: Context<Unstake>, amount: u64) -> Result<()> {
+pub fn unstake(ctx: Context<UnstakeContext>, amount: u64) -> Result<()> {
     let user_stake_info = &mut ctx.accounts.user_stake_info;
 
     require!(

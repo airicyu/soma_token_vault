@@ -7,11 +7,12 @@ use crate::state::stake_pool::StakePool;
 
 /// Change stake rate
 #[derive(Accounts)]
-pub struct ChangeStakeRate<'info> {
+pub struct ChangeStakeRateContext<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    #[account(seeds = [SEED_OWNER_CONFIG.as_ref()], bump)]
+    #[account(mut, seeds = [SEED_OWNER_CONFIG.as_ref()], bump,
+    constraint = owner_config.is_owner(&payer.key()) @ ProtocolProgramError::RequireOwner)]
     pub owner_config: Account<'info, OwnerConfig>,
 
     #[account(mut,
@@ -21,12 +22,7 @@ pub struct ChangeStakeRate<'info> {
     pub stake_pool: Box<Account<'info, StakePool>>,
 }
 
-pub fn change_stake_rate(ctx: Context<ChangeStakeRate>, stake_base_rate: u32) -> Result<()> {
-    require!(
-        &ctx.accounts.owner_config.is_owner(&ctx.accounts.payer.key()),
-        ProtocolProgramError::RequireOwner
-    );
-
+pub fn change_stake_rate(ctx: Context<ChangeStakeRateContext>, stake_base_rate: u32) -> Result<()> {
     let stake_pool = &mut ctx.accounts.stake_pool;
     stake_pool.stake_base_rate = stake_base_rate;
 
