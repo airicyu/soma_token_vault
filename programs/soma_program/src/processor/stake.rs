@@ -21,7 +21,7 @@ pub struct StakeContext<'info> {
     #[account(seeds = [SEED_TOKEN_CONFIG.as_ref()], bump)]
     pub token_config: Box<Account<'info, TokenConfig>>,
 
-    #[account(mut, seeds = [SEED_MINTER.as_ref()], bump)]
+    #[account(seeds = [SEED_MINTER.as_ref()], bump)]
     pub minter: AccountInfo<'info>,
 
     #[account(address = token_config.mint)]

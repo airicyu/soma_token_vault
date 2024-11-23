@@ -1,5 +1,7 @@
 # soma_token_vault
 
+Precaution: This is just for learning purpose. Dun use it for production!! Take your own risk!!
+
 This is a Solana on chain program that implement a token vault.
 
 What it could do:
@@ -21,7 +23,7 @@ What it could do:
 ### Install/Setup
 
 1. Make sure you have installed Rust.
-2. Make sure you have installed Solana-CLI.
+2. Make sure you have installed Solana-CLI. (Update Anchor.toml's toolchain solana_version to your local solana version, recommend 1.18.x)
 3. Make sure you have installed Anchor-CLI. (0.29.0)
 4. Checkout this program.
 5. "npm i" to install.

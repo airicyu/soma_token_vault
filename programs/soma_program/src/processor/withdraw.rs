@@ -25,10 +25,10 @@ pub struct WithdrawContext<'info> {
     #[account(seeds = [SEED_TOKEN_CONFIG.as_ref()], bump)]
     pub token_config: Box<Account<'info, TokenConfig>>,
 
-    #[account(mut, seeds = [SEED_MINTER.as_ref()], bump)]
+    #[account(seeds = [SEED_MINTER.as_ref()], bump)]
     pub minter: AccountInfo<'info>,
 
-    #[account(mut, address = token_config.mint)]
+    #[account(address = token_config.mint)]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(mut, seeds = [SEED_VAULT.as_ref()], bump)]

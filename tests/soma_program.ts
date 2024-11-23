@@ -95,6 +95,7 @@ describe("soma_protocol", () => {
       program.programId
     );
 
+    console.log("program", program.programId.toString());
     console.log("payer", payer.publicKey.toString());
     console.log("ownerConfigPDA", ownerConfigPDA.toString());
     console.log("relayerConfigPDA", relayerConfigPDA.toString());
